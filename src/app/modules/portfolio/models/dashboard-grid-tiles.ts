@@ -21,6 +21,7 @@ export enum DashboardGridTiles {
   BondsAllocation,
   P2PAllocation,
   StocksAllocation,
+  PortfolioTopHoldings,
 }
 
 export const DashboardGridTilesLabels: NumKeyDictionary<string> = {};
@@ -44,3 +45,4 @@ DashboardGridTilesLabels[DashboardGridTiles.P2PGeoAllocation] = 'P2P Geographic 
 DashboardGridTilesLabels[DashboardGridTiles.BondsAllocation] = 'Top Bond Holdings';
 DashboardGridTilesLabels[DashboardGridTiles.P2PAllocation] = 'Top P2P Holdings';
 DashboardGridTilesLabels[DashboardGridTiles.StocksAllocation] = 'Top Stock Holdings';
+DashboardGridTilesLabels[DashboardGridTiles.PortfolioTopHoldings] = 'Top Portfolio Holdings';

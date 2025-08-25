@@ -160,6 +160,7 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
   p2pCurrencyAllocationChart: ChartContext = { datasets: [], labels: [] };
   p2pGeoAllocationChart: ChartContext = { datasets: [], labels: [] };
   stockAllocationChart: ChartContext = { datasets: [], labels: [] };
+  topPortfolioHoldingsChart: ChartContext = { datasets: [], labels: [] };
   stockCurrencyAllocationChart: ChartContext = { datasets: [], labels: [] };
   stockGeoAllocationChart: ChartContext = { datasets: [], labels: [] };
   portfolioHistoryChart: ChartContext = { datasets: [{ label: '', data: [] }], labels: [] };
@@ -665,6 +666,7 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
     this.assetCurrenciesValue = {};
     this.assetRegions = {};
     this.assetTypeAllocationMap = {};
+    this.assetTypeAllocationMap[AssetType.All] = {};
     this.assetDescriptions = {};
     this.assetsUnrealizedPL = {};
 
@@ -704,6 +706,7 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
           }
           this.assetsUnrealizedPL[broadAssetType] += assetBaseCurrencyProfitLoss;
         }
+        assetIdKey = asset.type + '_' + assetIdKey;
 
         if (!asset.isVirtualAsset()) {
 
@@ -753,6 +756,10 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
             this.assetDescriptions[assetIdKey] = assetDescription;
           }
           assetTypeAllocation[assetIdKey] += assetBaseCurrencyValue;
+          // ignore liabilities for overall asset allocation
+          if (assetBaseCurrencyValue > 0) {
+            this.assetTypeAllocationMap[AssetType.All][assetIdKey] = (this.assetTypeAllocationMap[AssetType.All][assetIdKey] ?? 0) + assetBaseCurrencyValue;
+          }
 
           // tradeable assets can have a geographical region set, so group by that too
           if (asset.isTradeable()) {
@@ -801,6 +808,7 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
     this.bondAllocationChart = this.computeAssetTypeAllocationData(AssetType.Bond, 10);
     this.p2pAllocationChart = this.computeAssetTypeAllocationData(AssetType.P2P, 10);
     this.stockAllocationChart = this.computeAssetTypeAllocationData(AssetType.Stock, 10);
+    this.topPortfolioHoldingsChart = this.computeAssetTypeAllocationData(AssetType.All, 10);
     this.computeRebalanceSteps();
     await this.computePortfolioHistory();
     this.displayPortfolioHistory();

@@ -2,9 +2,10 @@
 
 ### UI Changes
 * 3Y interval option in Dashboard charts
-*  Display all future interest payments of a bond in Scheduled Transactions page
-*  Display total value of both credit & debit transactions in Scheduled Transactions page
+* Display all future interest payments of a bond in Scheduled Transactions page
+* Display total value of both credit & debit transactions in Scheduled Transactions page
 * Filter the Scheduled Transactions that are displayed
+* Top Portfolio Holdings chart on dashboard
 
 ## 1.5.0
 

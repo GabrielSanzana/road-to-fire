@@ -163,6 +163,17 @@
       </mat-grid-tile>
 
       <mat-grid-tile
+        *ngIf="gridVisibility[GridTiles.PortfolioTopHoldings] && topPortfolioHoldingsChart.datasets[0].data.length > 0">
+        <mat-card class="grid-card">
+          <mat-card-title>Top Portfolio Holdings</mat-card-title>
+
+          <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxFill class="grid-card-content">
+            <canvas baseChart [data]="topPortfolioHoldingsChart" [options]="pieChartOptions" type="doughnut"></canvas>
+          </mat-card-content>
+        </mat-card>
+      </mat-grid-tile>      
+
+      <mat-grid-tile
         *ngIf="gridVisibility[GridTiles.CurrencyAllocation] && currencyAllocationChart.datasets[0].data.length > 0">
         <mat-card class="grid-card">
           <mat-card-title>Currency Allocation</mat-card-title>
