@@ -11,23 +11,18 @@ export interface SymbolDetails {
 
 export const APP_CONSTS = {
   TITLE: 'Road To FIRE',
-  VERSION: '1.5.0',
+  VERSION: '1.6.0',
   // text to show when user first loads the current new version
-  WHATS_NEW_TITLE: `What's new in version 1.5.0`,
+  WHATS_NEW_TITLE: `What's new in version 1.6.0`,
   WHATS_NEW:
     `Features
-* Import account transactions from CSV file
-* Display Yield to Maturity (YTM) for bonds
-* Display Total Return in Portfolio History chart
+* Display all future interest payments of a bond in Scheduled Transactions page
+* Filter the Scheduled Transactions that are displayed
+* Top Portfolio Holdings chart on dashboard
 
 UI Changes
-* Display total buy cost (including fees) for assets
-* Display net P/L for assets instead of gross P/L
-
-Bug fixes
-* Show fee field when editing tradeable asset position
-* Refresh pie charts on data update
-`,
+* 3Y interval option in Dashboard charts
+* Display total value of both credit & debit transactions in Scheduled Transactions page`,
   REPOSITORY_URL: 'https://github.com/iLiviu/road-to-fire',
   STORAGE_API_KEYS: {
     DROPBOX: 'kbwh5504okeu3b9',
