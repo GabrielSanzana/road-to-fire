@@ -1,3 +1,8 @@
+## Master
+
+### Bug fixes
+* If the same asset is present in multiple accounts, only display it once when manually updating quotes
+
 ## 1.6.0
 
 ### Features

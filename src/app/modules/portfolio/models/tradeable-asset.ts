@@ -131,6 +131,16 @@ export class TradeableAsset extends Asset implements TradeableAssetData {
   }
 
   /**
+   * Generates a unique identifier key for the tradeable asset.
+   * 
+   * @returns A string that uniquely identifies the asset, using either the symbol
+   * (or description, if symbol is not present), currency and type.
+   */
+  getUniqueKey(): string {
+    return (this.symbol ? this.symbol : this.description) + '_' + this.currency + '_' + this.type;
+  }
+
+  /**
    * Removes a position at a given index
    * @param idx index of position to remove
    */

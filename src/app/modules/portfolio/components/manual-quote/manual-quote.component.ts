@@ -7,9 +7,9 @@ import { TradeableAsset } from '../../models/tradeable-asset';
 import { AccountAsset } from '../../models/account-asset';
 
 interface AssetData {
-  account: PortfolioAccount;
   asset: TradeableAsset;
   formCtrl: UntypedFormControl;
+  duplicates: AccountAsset[];
 }
 
 /**
@@ -47,15 +47,29 @@ export class ManualQuoteComponent implements OnInit {
   loadData() {
     this.assets = [];
     this.quotesFormAssets.controls.length = 0;
+    const uniqueAssets = new Map<string, AccountAsset[]>();
 
     for (const accAsset of this.accountAssets) {
       const tradeableAsset = <TradeableAsset>accAsset.asset;
+      const assetKey = tradeableAsset.getUniqueKey();
+      if (!uniqueAssets.has(assetKey)) {
+        uniqueAssets.set(assetKey, []);
+      }
+      uniqueAssets.get(assetKey).push(accAsset);
+    }
+
+    for (const [_, duplicatesGroup] of uniqueAssets) {
+      const accAsset = duplicatesGroup[0];
+      const tradeableAsset = <TradeableAsset>accAsset.asset;
+      // Create one form control for the group, initialized to the current price of the first asset in the group
+      // User will provide one quote that will be applied to all assets in the group
+      // We assume that all assets in the group are of the same type and currency
       const ctrl = new UntypedFormControl(tradeableAsset.currentPrice, [Validators.min(0.00001), Validators.pattern(/^[0-9]+(\.[0-9]+)?$/)]);
       this.quotesFormAssets.push(ctrl);
       this.assets.push({
-        account: accAsset.account,
         asset: tradeableAsset,
         formCtrl: ctrl,
+        duplicates: duplicatesGroup,
       });
     }
   }
@@ -65,11 +79,12 @@ export class ManualQuoteComponent implements OnInit {
    */
   saveQuotes() {
     const timestamp = new Date().toISOString();
-    for (let i = 0; i < this.assets.length; i++) {
-      const assetData = this.assets[i];
-
-      assetData.asset.currentPrice = +assetData.formCtrl.value;
-      assetData.asset.lastQuoteUpdate = timestamp;
+    for (const assetData of this.assets) {
+      for (const accAsset of assetData.duplicates) {
+        const tradeableAsset = <TradeableAsset>accAsset.asset;
+        tradeableAsset.currentPrice = +assetData.formCtrl.value;
+        tradeableAsset.lastQuoteUpdate = timestamp;
+      }
     }
     this.dialogRef.close(true);
   }
