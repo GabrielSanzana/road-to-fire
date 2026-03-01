@@ -84,8 +84,31 @@ export interface StorageModule {
 export abstract class StorageService {
 
   protected _serializer: StorageSerializer;
-  protected syncInProgress = false;
+  private _syncInProgress = false;
+  private _syncPromise: Promise<void> = Promise.resolve();
+  private _syncResolve: (() => void) | null = null;
   protected offline = false;
+
+  protected set syncInProgress(value: boolean) {
+    if (this._syncInProgress === value) {
+      return;
+    }
+    this._syncInProgress = value;
+    if (value) {
+      this._syncPromise = new Promise<void>(resolve => {
+        this._syncResolve = resolve;
+      });
+    } else {
+      if (this._syncResolve) {
+        this._syncResolve();
+        this._syncResolve = null;
+      }
+    }
+  }
+
+  protected get syncInProgress(): boolean {
+    return this._syncInProgress;
+  }
 
   constructor(protected logger: LoggerService) {
     this._serializer = new DefaultStorageSerializer();
@@ -185,18 +208,9 @@ export abstract class StorageService {
    * Wait for synchronization to complete, if cloud sync is enabled
    */
   waitForSync(): Promise<void> {
-    const syncDonePromise = new Promise<void>((resolve, reject) => {
-      if (!this.isCloudSyncEnabled()) {
-        resolve();
-      } else {
-        const timer = setInterval(() => {
-          if (!this.isSyncInProgress()) {
-            clearInterval(timer);
-            resolve();
-          }
-        }, 100);
-      }
-    });
-    return syncDonePromise;
+    if (!this.isCloudSyncEnabled()) {
+      return Promise.resolve();
+    }
+    return this._syncPromise;
   }
 }

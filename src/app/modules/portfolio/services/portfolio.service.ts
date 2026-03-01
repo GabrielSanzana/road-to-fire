@@ -66,6 +66,11 @@ export class PortfolioService {
   private recTxMapCache: NumKeyDictionary<RecurringTransaction>;
   private portfolioHistoryCache: PortfolioHistory;
 
+  private accountsLoadingPromise: Promise<PortfolioAccount[]>;
+  private accountsNoAssetsLoadingPromise: Promise<PortfolioAccount[]>;
+  private txLoadingPromise: Promise<Transaction[]>;
+  private recTxLoadingPromise: Promise<RecurringTransaction[]>;
+
   constructor(private eventsService: EventsService,
     private portfolioStorageService: PortfolioStorageService,
     private assetQuoteService: AssetsQuoteService,
@@ -153,14 +158,37 @@ export class PortfolioService {
   async getAccounts(loadAssets: boolean = true): Promise<PortfolioAccount[]> {
     if (this.accountsCache) {
       return this.accountsCache;
-    } else {
-      const accounts = await this.storage.getAllAccounts(loadAssets);
-      if (loadAssets) {
-        this.buildAccountsCache(accounts);
+    }
+
+    if (loadAssets) {
+      if (this.accountsLoadingPromise) {
+        return this.accountsLoadingPromise;
       }
-      return accounts;
+      this.accountsLoadingPromise = (async () => {
+        try {
+          const accounts = await this.storage.getAllAccounts(true);
+          this.buildAccountsCache(accounts);
+          return accounts;
+        } finally {
+          this.accountsLoadingPromise = null;
+        }
+      })();
+      return this.accountsLoadingPromise;
+    } else {
+      if (this.accountsNoAssetsLoadingPromise) {
+        return this.accountsNoAssetsLoadingPromise;
+      }
+      this.accountsNoAssetsLoadingPromise = (async () => {
+        try {
+          return await this.storage.getAllAccounts(false);
+        } finally {
+          this.accountsNoAssetsLoadingPromise = null;
+        }
+      })();
+      return this.accountsNoAssetsLoadingPromise;
     }
   }
+
 
   /**
    * Adds a new asset to storage. Also adds it to the account's list of assets.
@@ -283,9 +311,16 @@ export class PortfolioService {
     if (this.txCache) {
       return this.txCache;
     } else {
-      const transactions = await this.storage.getAllTransactions();
-      this.buildTxsCache(transactions);
-      return transactions;
+      if (this.txLoadingPromise) {
+        return this.txLoadingPromise;
+      }
+      this.txLoadingPromise = (async () => {
+        const transactions = await this.storage.getAllTransactions();
+        this.buildTxsCache(transactions);
+        this.txLoadingPromise = null;
+        return transactions;
+      })();
+      return this.txLoadingPromise;
     }
   }
 
@@ -393,9 +428,16 @@ export class PortfolioService {
     if (this.recTxCache) {
       return this.recTxCache;
     } else {
-      const transactions = await this.storage.getAllRecurringTransactions();
-      this.buildRecTxsCache(transactions);
-      return transactions;
+      if (this.recTxLoadingPromise) {
+        return this.recTxLoadingPromise;
+      }
+      this.recTxLoadingPromise = (async () => {
+        const transactions = await this.storage.getAllRecurringTransactions();
+        this.buildRecTxsCache(transactions);
+        this.recTxLoadingPromise = null;
+        return transactions;
+      })();
+      return this.recTxLoadingPromise;
     }
   }
 
@@ -830,7 +872,7 @@ export class PortfolioService {
    * @param cfg stored portfolio configuration
    */
   async upgradePortfolioToVersion2(cfg: PortfolioConfig): Promise<Transaction[]> {
-    
+
     const transactions = await this.storage.getAllTransactions();
     const promises: Promise<Transaction>[] = [];
     for (const tx of transactions) {
@@ -901,7 +943,7 @@ export class PortfolioService {
       }
     }
     const response = Promise.all(promises);
-    
+
     cfg.version = PORTFOLIO_VERSION3;
     return response;
   }

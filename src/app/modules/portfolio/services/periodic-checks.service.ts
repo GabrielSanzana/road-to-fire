@@ -31,10 +31,7 @@ export class PeriodicChecksService {
     private assetManagementService: AssetManagementService, private eventsService: EventsService,
     private logger: LoggerService) {
     this.eventsService.events$.subscribe(event => this.handleEvents(event));
-    this.storageService.waitForSync().then(() => {
-      this.storageSynced = true;
-      this.firstStart();
-    });
+
   }
 
   /**
@@ -45,7 +42,10 @@ export class PeriodicChecksService {
     switch (event.type) {
       case AppEventType.PORTFOLIO_MODULE_LOADED:
         this.portfolioModuleLoaded = true;
-        this.firstStart();
+        this.storageService.waitForSync().then(() => {
+          this.storageSynced = true;
+          this.firstStart();
+        });
         break;
       case AppEventType.OFFLINE_MODE_TOGGLED:
         if (!event.data) {
