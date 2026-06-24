@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { parse } from 'csv-parse/browser/esm/sync';
 import { CSV_IMPORT_COLUMN_IDS, TransactionsImportTemplate } from "../models/transactions-import-template";
-import * as moment from "moment";
+import moment from 'moment';
 import { Asset, AssetType } from "../models/asset";
 import { AssetRegion } from "../models/asset-region";
 import { AssetOperationAction, AssetOperationData } from "../models/asset-operation-data";

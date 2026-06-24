@@ -49,6 +49,18 @@ export class ConfigService {
 
     this.storage.setChangeListener(async (event: StorageChangeEvent) => {
       if (event.origin === StorageChangeOrigin.remote || event.origin === StorageChangeOrigin.conflict) {
+        if (event.origin === StorageChangeOrigin.conflict) {
+          setTimeout(async () => {
+            try {
+              if (event.newValue && event.relativePath === CONFIG_PATH) {
+                await self.storage.saveConfig(event.newValue);
+              }
+            } catch (err) {
+              self.logger.error('Failed to resolve conflict by storing remote version', err);
+            }
+          }, 0);
+        }
+
         if (event.newValue === null && event.oldValue === null) {
           // data is encrypted with unknown password. we need to reload page
           self.eventsService.encryptionStateChangedRemotely();

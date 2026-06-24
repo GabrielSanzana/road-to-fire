@@ -5,6 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormatDatePipe } from 'src/app/shared/pipes/format-date.pipe';
 import { ViewAsset } from '../../models/view-asset';
 import { SAMPLE_ASSETS, SAMPLE_ACCOUNTS } from '../../mocks/sample-accounts.mock';
@@ -33,6 +35,8 @@ describe('TradeableAssetViewComponent', () => {
         MatDividerModule,
         MatButtonModule,
         MatIconModule,
+        MatChipsModule,
+        MatTooltipModule,
       ],
       declarations: [
         TradeableAssetViewComponent,

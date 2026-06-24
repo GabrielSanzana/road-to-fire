@@ -19,6 +19,8 @@ import {
 } from '../payment-date-add/payment-date-add.component';
 import { AssetRegion, ASSET_REGION_LABELS } from '../../models/asset-region';
 import { AssetOperationAction, AssetOperationData } from '../../models/asset-operation-data';
+import { LabelCategory } from '../../models/label-category';
+import { Label } from '../../models/label';
 
 
 
@@ -32,6 +34,8 @@ export interface AssetTradeUserInputData {
   action: AssetOperationAction;
   position?: TradePosition;
   asset?: TradeableAsset;
+  allLabels: Label[];
+  allLabelCategories: LabelCategory[];
 }
 
 
@@ -101,6 +105,9 @@ export class AssetTradeComponent implements OnInit, OnDestroy, AfterViewInit {
   transactionDate: UntypedFormControl;
   updateCashAssetBalance: UntypedFormControl;
   withholdInterestTax: UntypedFormControl;
+  labelIds: UntypedFormControl;
+
+  labelsByCategory: { [categoryId: number]: Label[] } = {};
 
 
   readonly AssetTradeAction = AssetOperationAction;
@@ -114,7 +121,6 @@ export class AssetTradeComponent implements OnInit, OnDestroy, AfterViewInit {
 
   constructor(public dialogRef: MatDialogRef<AssetTradeComponent>,
     @Inject(MAT_DIALOG_DATA) public data: AssetTradeUserInputData, public dialogs: DialogsService, private cdr: ChangeDetectorRef) {
-
   }
 
   ngOnInit() {
@@ -128,7 +134,7 @@ export class AssetTradeComponent implements OnInit, OnDestroy, AfterViewInit {
     this.bondLikeAsset = this.data.assetType === AssetType.Bond || this.data.assetType === AssetType.P2P;
     this.exchangeTradedAsset = this.data.assetType !== AssetType.RealEstate && this.data.assetType !== AssetType.P2P &&
       this.data.assetType !== AssetType.Forex;
-    this.tradeExistingAsset = this.data.action === AssetOperationAction.SELL || 
+    this.tradeExistingAsset = this.data.action === AssetOperationAction.SELL ||
       (this.data.action === AssetOperationAction.BUY && this.data.asset !== null
         && this.data.asset !== undefined);
     this.singleTabEdit = !this.bondLikeAsset || this.tradeExistingAsset;
@@ -176,6 +182,7 @@ export class AssetTradeComponent implements OnInit, OnDestroy, AfterViewInit {
     this.updateCashAssetBalance = new UntypedFormControl(this.data.assetType !== AssetType.Forex);
     this.exchange = new UntypedFormControl();
     this.stockType = new UntypedFormControl();
+    this.labelIds = new UntypedFormControl([]);
     this.stockType.valueChanges.pipe(takeUntil(this.componentDestroyed$)).subscribe((value) => {
       this.isMutualFund = TradeableAsset.isMutualFund(value);
     });
@@ -241,7 +248,26 @@ export class AssetTradeComponent implements OnInit, OnDestroy, AfterViewInit {
       } else if (this.data.asset.isStockLike()) {
         this.stockType.setValue(this.data.asset.type);
       }
+
+      if (this.data.asset.labels) {
+        this.labelIds.setValue(this.data.asset.labels.map(l => l.id));
+      }
     }
+
+    this.labelsByCategory = {};
+    for (const category of this.data.allLabelCategories) {
+      this.labelsByCategory[category.id] = [];
+    }
+    for (const label of this.data.allLabels) {
+      if (label.category) {
+        if (!this.labelsByCategory[label.category.id]) {
+          this.labelsByCategory[label.category.id] = [];
+        }
+        this.labelsByCategory[label.category.id].push(label);
+      }
+    }
+    this.cdr.markForCheck();
+
 
     this.assetForm = new UntypedFormGroup({
       cashAsset: this.cashAsset,
@@ -256,7 +282,7 @@ export class AssetTradeComponent implements OnInit, OnDestroy, AfterViewInit {
       updateCashAssetBalance: this.updateCashAssetBalance,
       exchange: this.exchange,
       stockType: this.stockType,
-
+      labelIds: this.labelIds,
     });
 
     if (this.bondLikeAsset) {
@@ -338,6 +364,7 @@ export class AssetTradeComponent implements OnInit, OnDestroy, AfterViewInit {
         principalAmount: this.principalAmount.value,
         region: this.region.value,
         symbol: fullSymbol,
+        labels: Object.values(this.labelsByCategory).flat().filter(l => this.labelIds.value.includes(l.id)),
         transactionDate: getDateAsISOString(this.transactionDate.value),
         updateCashAssetBalance: this.updateCashAssetBalance.value,
         assetType: this.data.assetType,

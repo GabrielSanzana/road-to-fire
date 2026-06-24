@@ -8,6 +8,8 @@ import { AppNotification } from './notification';
 import { RecurringTransaction } from './recurring-transaction';
 import { PortfolioHistory } from './portfolio-history';
 import { TransactionsImportTemplate } from './transactions-import-template';
+import { LabelCategory } from './label-category';
+import { Label } from './label';
 
 export interface PortfolioStorage extends StorageModule {
   addAccount(account: PortfolioAccount): Promise<PortfolioAccount>;
@@ -46,4 +48,16 @@ export interface PortfolioStorage extends StorageModule {
   addTransactionsImportTemplate(template: TransactionsImportTemplate): Promise<TransactionsImportTemplate>;
   updateTransactionsImportTemplate(template: TransactionsImportTemplate): Promise<TransactionsImportTemplate>;
   removeTransactionsImportTemplate(template: TransactionsImportTemplate): Promise<void>;
+
+  addLabelCategory(category: LabelCategory): Promise<LabelCategory>;
+  updateLabelCategory(category: LabelCategory): Promise<LabelCategory>;
+  removeLabelCategory(category: LabelCategory): Promise<void>;
+  getLabelCategory(id: number): Promise<LabelCategory>;
+  getAllLabelCategories(): Promise<LabelCategory[]>;
+
+  addLabel(label: Label): Promise<Label>;
+  updateLabel(label: Label): Promise<Label>;
+  removeLabel(label: Label): Promise<void>;
+  getLabel(id: number): Promise<Label>;
+  getAllLabels(): Promise<Label[]>;
 }

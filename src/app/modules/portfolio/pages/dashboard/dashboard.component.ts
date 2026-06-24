@@ -13,10 +13,12 @@ import {
 import { DialogsService } from 'src/app/modules/dialogs/dialogs.service';
 import { Dictionary, NumKeyDictionary } from 'src/app/shared/models/dictionary';
 import { AssetManagementService } from '../../services/asset-management.service';
+import { Label } from '../../models/label';
+import { LabelCategory } from '../../models/label-category';
 import { StorageService } from 'src/app/core/services/storage.service';
 import { TradeableAsset } from '../../models/tradeable-asset';
 import { DashboardGridTileEditorComponent } from '../../components/dashboard-grid-tile-editor/dashboard-grid-tile-editor.component';
-import { DashboardGridTiles } from '../../models/dashboard-grid-tiles';
+import { DashboardGridTiles, LABEL_CATEGORY_TILE_PREFIX } from '../../models/dashboard-grid-tiles';
 import { PortfolioHistoryEntry, PortfolioAssetValue, PortfolioHistory, PortfolioHistoryDataField } from '../../models/portfolio-history';
 import { getCurrencySymbol } from '@angular/common';
 import {
@@ -24,7 +26,7 @@ import {
 } from '../../components/portfolio-history-add/portfolio-history-add.component';
 import { FloatingMath, binarySearch, DateUtils } from 'src/app/shared/util';
 import { ASSET_REGION_LABELS, AssetRegionHelper } from '../../models/asset-region';
-import * as moment from 'moment';
+import moment from 'moment';
 import { ThemeService } from 'ng2-charts';
 import { ChartOptions, TooltipItem } from 'chart.js';
 import { APP_THEMES, ConfigService } from 'src/app/core/services/config.service';
@@ -168,6 +170,9 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
   timeFrameIRR: number;
   timeFrameTotalReturn: number;
   inaccurateIRR: boolean;
+  labelCategoriesAllocationCharts: { [categoryId: number]: ChartContext } = {};
+  labelCategories: LabelCategory[] = [];
+  LABEL_CATEGORY_TILE_PREFIX = LABEL_CATEGORY_TILE_PREFIX;
 
   readonly assetTypeLabels = { ...ASSET_TYPE_LABELS };
   readonly goalChartColors: Array<any> = ['rgb(51, 160, 223)', 'rgba(214, 214, 214, 0.897)'];
@@ -309,7 +314,7 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
 
   private allPortfolioHistory: PortfolioHistory;
   private baseCurrencySymbol: string;
-
+  private labelAllocations: { [categoryId: number]: { [labelId: number]: { label: Label, value: number } } } = {};
 
   constructor(protected eventsService: EventsService, protected portfolioService: PortfolioService,
     protected logger: LoggerService, protected dialogService: DialogsService, protected router: Router,
@@ -428,6 +433,12 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
       case AppEventType.ASSET_ADDED:
       case AppEventType.ASSET_REMOVED:
       case AppEventType.ASSET_UPDATED:
+      case AppEventType.LABEL_ADDED:
+      case AppEventType.LABEL_REMOVED:
+      case AppEventType.LABEL_UPDATED:
+      case AppEventType.LABEL_CATEGORY_ADDED:
+      case AppEventType.LABEL_CATEGORY_REMOVED:
+      case AppEventType.LABEL_CATEGORY_UPDATED:
         this.onDataUpdated();
         break;
       case AppEventType.THEME_CHANGED:
@@ -585,6 +596,33 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
     return chartCtx;
   }
 
+  private computeLabelCategoriesAllocationData() {
+    this.labelCategoriesAllocationCharts = {};
+    for (const category of this.labelCategories) {
+      const labelsDict = this.labelAllocations[category.id];
+      if (labelsDict) {
+        const chartCtx: ChartContext = { datasets: [{ data: [] }], labels: [] };
+
+        let totalValue = 0;
+        const labelsArr = Object.values(labelsDict);
+        labelsArr.sort((a, b) => b.value - a.value);
+
+        for (const item of labelsArr) {
+          totalValue += item.value;
+        }
+
+        for (const item of labelsArr) {
+          chartCtx.labels.push(item.label.name);
+          chartCtx.datasets[0].data.push(this.toPercentage(item.value, totalValue));
+          if (item.label.color) {
+            chartCtx.datasets[0].backgroundColor.push(item.label.color);
+          }
+        }
+        this.labelCategoriesAllocationCharts[category.id] = chartCtx;
+      }
+    }
+  }
+
   /**
    * Build the chart data for the geographic allocation of a specific asset type
    * @param assetType asset type
@@ -669,6 +707,7 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
     this.assetTypeAllocationMap[AssetType.All] = {};
     this.assetDescriptions = {};
     this.assetsUnrealizedPL = {};
+    this.labelAllocations = {};
 
     // check for any foreign currencies and get updated quotes for them
     const requiredCurrencies: string[] = [];
@@ -759,6 +798,21 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
           // ignore liabilities for overall asset allocation
           if (assetBaseCurrencyValue > 0) {
             this.assetTypeAllocationMap[AssetType.All][assetIdKey] = (this.assetTypeAllocationMap[AssetType.All][assetIdKey] ?? 0) + assetBaseCurrencyValue;
+
+            if (asset.labels) {
+              for (const label of asset.labels) {
+                if (label.category) {
+                  const catId = label.category.id;
+                  if (!this.labelAllocations[catId]) {
+                    this.labelAllocations[catId] = {};
+                  }
+                  if (!this.labelAllocations[catId][label.id]) {
+                    this.labelAllocations[catId][label.id] = { label: label, value: 0 };
+                  }
+                  this.labelAllocations[catId][label.id].value += assetBaseCurrencyValue;
+                }
+              }
+            }
           }
 
           // tradeable assets can have a geographical region set, so group by that too
@@ -809,6 +863,7 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
     this.p2pAllocationChart = this.computeAssetTypeAllocationData(AssetType.P2P, 10);
     this.stockAllocationChart = this.computeAssetTypeAllocationData(AssetType.Stock, 10);
     this.topPortfolioHoldingsChart = this.computeAssetTypeAllocationData(AssetType.All, 10);
+    this.computeLabelCategoriesAllocationData();
     this.computeRebalanceSteps();
     await this.computePortfolioHistory();
     this.displayPortfolioHistory();
@@ -1074,6 +1129,14 @@ export class DashboardComponent extends PortfolioPageComponent implements OnInit
     if (!this.dataLoading) {
       this.dataLoading = true;
       try {
+        this.labelCategories = await this.portfolioService.getLabelCategories();
+        for (const cat of this.labelCategories) {
+          const key = this.LABEL_CATEGORY_TILE_PREFIX + cat.id;
+          if (this.gridVisibility[key] === undefined) {
+            this.gridVisibility[key] = true;
+          }
+        }
+
         const accounts = await this.portfolioService.getAccounts();
         this.accounts = accounts;
         await this.computeStats();

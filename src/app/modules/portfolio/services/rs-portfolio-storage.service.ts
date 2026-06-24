@@ -7,7 +7,11 @@ import {
   PORTFOLIO_HISTORY_ALIAS,
   PORTFOLIO_HISTORY_PATH,
   TX_IMPORT_TEMPLATES_PATH,
-  TX_IMPORT_TEMPLATE_ALIAS
+  TX_IMPORT_TEMPLATE_ALIAS,
+  LABEL_CATEGORIES_PATH,
+  LABEL_CATEGORY_ALIAS,
+  LABELS_PATH,
+  LABEL_ALIAS
 } from './portfolio-storage.service';
 import { PortfolioStorage } from '../models/portfolio-storage';
 import { BaseRemoteStorageModule, RSModuleObjectType } from 'src/app/core/models/remotestorage-module';
@@ -26,7 +30,8 @@ import { TransactionFactory } from '../models/transaction-factory';
 import { AssetFactory } from '../models/asset-factory';
 import { PortfolioHistory } from '../models/portfolio-history';
 import { TransactionsImportTemplate } from '../models/transactions-import-template';
-
+import { LabelCategory, LabelCategoryData } from '../models/label-category';
+import { Label, LabelData } from '../models/label';
 
 const RSMODULE_NAME = 'asset-portfolio';
 
@@ -253,7 +258,13 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
               }
             }
           },
-
+          'labels': {
+            'type': 'array',
+            'default': [],
+            'items': {
+              'type': 'number'
+            }
+          },
         },
       });
 
@@ -467,6 +478,27 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
         }
       });
 
+      privateClient.declareType(LABEL_CATEGORY_ALIAS, {
+        'type': 'object',
+        'properties': {
+          'encryptedData': { 'type': 'string' },
+          'id': { 'type': 'number' },
+          'name': { 'type': 'string' },
+          'description': { 'type': 'string' },
+        }
+      });
+
+      privateClient.declareType(LABEL_ALIAS, {
+        'type': 'object',
+        'properties': {
+          'encryptedData': { 'type': 'string' },
+          'id': { 'type': 'number' },
+          'category': { 'type': 'number' },
+          'name': { 'type': 'string' },
+          'color': { 'type': 'string' },
+        }
+      });
+
       return {
         exports: new class extends BaseRemoteStorageModule implements PortfolioStorage {
           private _accountIds: Dictionary<any> = null;
@@ -474,6 +506,9 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
           private _transactionIds: Dictionary<any> = null;
           private _recurringTransactionIds: Dictionary<any> = null;
           private _notificationIds: Dictionary<any> = null;
+          private _labelCategoriesIds: Dictionary<LabelCategory> = null;
+          private _labels: Dictionary<Label> = null;
+          private _labelIds: Dictionary<any> = null;
 
           private newAccountInstance(obj: Object): PortfolioAccount {
             const acc = new PortfolioAccount();
@@ -585,6 +620,37 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
             return this._notificationIds;
           }
 
+          private async getLabelCategoryIds(): Promise<Dictionary<LabelCategory>> {
+            if (!this._labelCategoriesIds) {
+              this._labelCategoriesIds = await this.privateClient.getListing(LABEL_CATEGORIES_PATH);
+            }
+            return this._labelCategoriesIds;
+          }
+
+          private async getLabelIds(): Promise<Dictionary<number>> {
+            if (!this._labelIds) {
+              this._labelIds = await this.privateClient.getListing(LABELS_PATH);
+            }
+            return this._labelIds;
+          }
+
+          private async getLabels(): Promise<Dictionary<Label>> {
+            if (!this._labels) {
+              await this.getAllLabels()
+            }
+            return this._labels;
+          }
+
+          private async generateUniqueLabelCategoryId(): Promise<number> {
+            const categories = await this.getLabelCategoryIds();
+            return this.generateUniqueId(categories);
+          }
+
+          private async generateUniqueLabelId(): Promise<number> {
+            const labels = await this.getLabelIds();
+            return this.generateUniqueId(labels);
+          }
+
           protected dataChanged(event: StorageChangeEvent): void {
             if (event.origin === StorageChangeOrigin.remote) {
               // clear cache if data changed remotely
@@ -598,6 +664,12 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
                 this._notificationIds = null;
               } else if (event.relativePath.startsWith(RECURRING_TRANSACTIONS_PATH)) {
                 this._recurringTransactionIds = null;
+              } else if (event.relativePath.startsWith(LABEL_CATEGORIES_PATH)) {
+                this._labelCategoriesIds = null;
+              } else if (event.relativePath.startsWith(LABELS_PATH)) {
+                this._labels = null;
+                this._labelIds = null;
+                this._assets = null;
               }
             }
           }
@@ -626,6 +698,18 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
             } else {
               return null;
             }
+          }
+
+          private setAssetLabels(asset: Asset, labels: Dictionary<Label>) {
+            const assetLabels: Label[] = [];
+            for (const item of asset.labels) {
+              const labelId: number = +<any>item;
+              const label = labels[labelId];
+              if (label) {
+                assetLabels.push(label);
+              }
+            }
+            asset.labels = assetLabels;
           }
 
           private setAccountAssets(account: PortfolioAccount, assets: Dictionary<Asset>) {
@@ -712,6 +796,8 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
             const assetData = await this.getObject(path);
             if (assetData) {
               const asset = this.newAssetInstance(assetData);
+              const labels = await this.getLabels();
+              this.setAssetLabels(asset, labels);
               return asset;
             } else {
               return null;
@@ -720,6 +806,7 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
 
           async getAllAssets(): Promise<Asset[]> {
             const assets = await this.getAll(ASSETS_PATH);
+            const labels = await this.getLabels();
             const newAssets = [];
             this._assets = {};
             if (assets) {
@@ -727,6 +814,7 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
                 const assetData = <AssetData>assets[path];
                 if (assetData && assetData.id) {
                   const asset = this.newAssetInstance(assetData);
+                  this.setAssetLabels(asset, labels);
                   newAssets.push(asset);
                   this._assets[asset.id] = asset;
                 }
@@ -737,14 +825,17 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
 
           async updateAsset(asset: Asset): Promise<Asset> {
             const path = ASSETS_PATH + asset.id; // use id as filename
-            await this.storeObject(ASSET_ALIAS, path, asset);
+            const assetCopy = { ...asset };
+            if (asset.labels) {
+              assetCopy.labels = <any>asset.labels.map(l => l.id);
+            }
+            await this.storeObject(ASSET_ALIAS, path, assetCopy);
 
             // update cache
             if (this._assets) {
               this._assets[asset.id] = asset;
             }
             return asset; // return asset
-
           }
 
           async removeAsset(asset: Asset) {
@@ -969,6 +1060,135 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
             await privateClient.remove(path);
           }
 
+          // Label Categories
+          async addLabelCategory(category: LabelCategory): Promise<LabelCategory> {
+            category.id = await this.generateUniqueLabelCategoryId();
+            await this.updateLabelCategory(category);
+            return category;
+          }
+
+          async updateLabelCategory(category: LabelCategory): Promise<LabelCategory> {
+            const path = LABEL_CATEGORIES_PATH + category.id;
+            await this.storeObject(LABEL_CATEGORY_ALIAS, path, category);
+            if (this._labelCategoriesIds) {
+              this._labelCategoriesIds[category.id] = category;
+            }
+            return category;
+          }
+
+          async removeLabelCategory(category: LabelCategory): Promise<void> {
+            const allLabels = await this.getAllLabels();
+            const childLabels = allLabels.filter(l => l.category?.id === category.id);
+            const promises = childLabels.map(l => this.removeLabel(l));
+            await Promise.all(promises);
+
+            await this.privateClient.remove(LABEL_CATEGORIES_PATH + category.id);
+            if (this._labelCategoriesIds) {
+              delete this._labelCategoriesIds[category.id];
+            }
+          }
+
+          async getLabelCategory(id: number): Promise<LabelCategory> {
+            if (this._labelCategoriesIds && this._labelCategoriesIds[id]) {
+              return this._labelCategoriesIds[id];
+            } else {
+              const path = LABEL_CATEGORIES_PATH + id;
+              const data = await this.getObject(path);
+              if (data) {
+                return new LabelCategory(data);
+              } else {
+                return null;
+              }
+            }
+          }
+
+
+          private async getLabelCategories(): Promise<Dictionary<LabelCategory>> {
+            if (!this._labelCategoriesIds) {
+              await this.getAllLabelCategories();
+            }
+            return this._labelCategoriesIds;
+          }
+
+          async getAllLabelCategories(): Promise<LabelCategory[]> {
+            const categoriesData = await this.getAll(LABEL_CATEGORIES_PATH);
+            const categories = [];
+            this._labelCategoriesIds = {};
+            if (categoriesData) {
+              for (const path of Object.keys(categoriesData)) {
+                const data = <LabelCategoryData>categoriesData[path];
+                if (data && data.id) {
+                  const category = new LabelCategory(data);
+                  categories.push(category);
+                  this._labelCategoriesIds[category.id] = category;
+                }
+              }
+            }
+            return categories;
+          }
+
+          // Labels
+          async addLabel(label: Label): Promise<Label> {
+            label.id = await this.generateUniqueLabelId();
+            await this.updateLabel(label);
+            return label;
+          }
+
+          async updateLabel(label: Label): Promise<Label> {
+            const path = LABELS_PATH + label.id;
+            const labelCopy: LabelData = { ...label };
+            if (label.category) {
+              labelCopy.category = <any>label.category.id;
+            }
+            await this.storeObject(LABEL_ALIAS, path, labelCopy);
+            if (this._labels) {
+              this._labels[label.id] = label;
+            }
+            this._assets = null;
+            return label;
+          }
+
+          async removeLabel(label: Label): Promise<void> {
+            await this.privateClient.remove(LABELS_PATH + label.id);
+            if (this._labels) {
+              delete this._labels[label.id];
+            }
+            this._assets = null;
+          }
+
+          async getLabel(id: number): Promise<Label> {
+            const path = LABELS_PATH + id;
+            const data: LabelData = await this.getObject(path);
+            if (data) {
+              const label = new Label(data);
+              label.category = await this.getLabelCategory(+data.category);
+              return label;
+            } else {
+              return null;
+            }
+          }
+
+          async getAllLabels(): Promise<Label[]> {
+            const labelsData = await this.getAll(LABELS_PATH);
+            const labels = [];
+            this._labels = {};
+            const categories = await this.getLabelCategories();
+            if (labelsData) {
+              for (const path of Object.keys(labelsData)) {
+                const data: LabelData = labelsData[path];
+                if (data && data.id) {
+                  const label = new Label(data);
+                  if (data.category && categories[+data.category]) {
+                    label.category = categories[+data.category];
+                  }
+                  labels.push(label);
+                  this._labels[label.id] = label;
+                }
+              }
+            }
+            return labels;
+          }
+
           getObjectTypes(): RSModuleObjectType[] {
             return this.getSerializableObjectTypes();
           }
@@ -984,6 +1204,8 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
               { path: NOTIFICATIONS_PATH, alias: NOTIFICATION_ALIAS, collectionType: true },
               { path: PORTFOLIO_HISTORY_PATH, alias: PORTFOLIO_HISTORY_ALIAS, collectionType: false },
               { path: TX_IMPORT_TEMPLATES_PATH, alias: TX_IMPORT_TEMPLATE_ALIAS, collectionType: true },
+              { path: LABEL_CATEGORIES_PATH, alias: LABEL_CATEGORY_ALIAS, collectionType: true },
+              { path: LABELS_PATH, alias: LABEL_ALIAS, collectionType: true },
             ];
           }
 
@@ -997,6 +1219,9 @@ function createPortfolioRStorageModule(serializer: StorageSerializer) {
             this._transactionIds = null;
             this._recurringTransactionIds = null;
             this._notificationIds = null;
+            this._labelCategoriesIds = null;
+            this._labels = null;
+            this._labelIds = null;
           }
 
         }(privateClient, publicClient, serializer)

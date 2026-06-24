@@ -9,7 +9,17 @@ import { PortfolioConfig } from '../models/portfolio-config';
 import { PortfolioStorage } from '../models/portfolio-storage';
 import {
   PortfolioStorageService, ASSETS_PATH, ACCOUNTS_PATH, TRANSACTIONS_PATH,
-  NOTIFICATIONS_PATH, CONFIG_PATH, RECURRING_TRANSACTIONS_PATH, PORTFOLIO_HISTORY_PATH
+  NOTIFICATIONS_PATH, CONFIG_PATH, RECURRING_TRANSACTIONS_PATH, PORTFOLIO_HISTORY_PATH,
+  LABELS_PATH, LABEL_CATEGORIES_PATH,
+  ASSET_ALIAS,
+  ACCOUNT_ALIAS,
+  TRANSACTION_ALIAS,
+  RECURRING_TRANSACTION_ALIAS,
+  NOTIFICATION_ALIAS,
+  CONFIG_ALIAS,
+  PORTFOLIO_HISTORY_ALIAS,
+  LABEL_ALIAS,
+  LABEL_CATEGORY_ALIAS
 } from './portfolio-storage.service';
 import { AssetQuote, StoredAssetQuote } from '../models/asset-quote';
 import { APP_CONSTS } from 'src/app/config/app.constants';
@@ -27,6 +37,8 @@ import { UserAppError } from 'src/app/shared/models/user-app-error';
 import { TransferTransaction, TransferTransactionData } from '../models/transfer-transaction';
 import { TransactionFactory } from '../models/transaction-factory';
 import { TransactionsImportTemplate } from '../models/transactions-import-template';
+import { LabelCategory } from '../models/label-category';
+import { Label } from '../models/label';
 
 const PORTFOLIO_VERSION2 = 2;
 const PORTFOLIO_VERSION3 = 3;
@@ -66,10 +78,18 @@ export class PortfolioService {
   private recTxMapCache: NumKeyDictionary<RecurringTransaction>;
   private portfolioHistoryCache: PortfolioHistory;
 
+  private labelCategoriesCache: LabelCategory[];
+  private labelCategoriesMapCache: NumKeyDictionary<LabelCategory>;
+  private labelsCache: Label[];
+  private labelsMapCache: NumKeyDictionary<Label>;
+
   private accountsLoadingPromise: Promise<PortfolioAccount[]>;
   private accountsNoAssetsLoadingPromise: Promise<PortfolioAccount[]>;
   private txLoadingPromise: Promise<Transaction[]>;
   private recTxLoadingPromise: Promise<RecurringTransaction[]>;
+
+  private labelCategoriesLoadingPromise: Promise<LabelCategory[]>;
+  private labelsLoadingPromise: Promise<Label[]>;
 
   constructor(private eventsService: EventsService,
     private portfolioStorageService: PortfolioStorageService,
@@ -987,6 +1007,123 @@ export class PortfolioService {
   }
 
   /**
+   * Label Categories
+   */
+  async addLabelCategory(category: LabelCategory): Promise<LabelCategory> {
+    const newCategory = await this.storage.addLabelCategory(category);
+    if (this.labelCategoriesCache) {
+      this.labelCategoriesCache.push(newCategory);
+      this.labelCategoriesMapCache[newCategory.id] = newCategory;
+    }
+    this.eventsService.labelCategoryAdded(newCategory.id);
+    return newCategory;
+  }
+
+  async updateLabelCategory(category: LabelCategory): Promise<LabelCategory> {
+    const updated = await this.storage.updateLabelCategory(category);
+    this.invalidateLabelCategoriesCache();
+    this.eventsService.labelCategoryUpdated(updated.id);
+    return updated;
+  }
+
+  async removeLabelCategory(category: LabelCategory): Promise<void> {
+    await this.storage.removeLabelCategory(category);
+    this.invalidateLabelCategoriesCache();
+    this.invalidateLabelsCache(); // Because child labels are also deleted
+    this.eventsService.labelCategoryRemoved(category.id);
+  }
+
+  async getLabelCategory(categoryId: number): Promise<LabelCategory> {
+    if (this.labelCategoriesMapCache) {
+      return this.labelCategoriesMapCache[categoryId];
+    } else {
+      return await this.storage.getLabelCategory(categoryId);
+    }
+  }
+
+  async getLabelCategories(): Promise<LabelCategory[]> {
+    if (this.labelCategoriesCache) {
+      return this.labelCategoriesCache;
+    }
+    if (this.labelCategoriesLoadingPromise) {
+      return this.labelCategoriesLoadingPromise;
+    }
+    this.labelCategoriesLoadingPromise = (async () => {
+      const categories = await this.storage.getAllLabelCategories();
+      this.buildLabelCategoriesCache(categories);
+      this.labelCategoriesLoadingPromise = null;
+      return categories;
+    })();
+    return this.labelCategoriesLoadingPromise;
+  }
+
+  private buildLabelCategoriesCache(categories: LabelCategory[]) {
+    this.labelCategoriesCache = categories;
+    this.labelCategoriesMapCache = {};
+    for (const c of categories) {
+      this.labelCategoriesMapCache[c.id] = c;
+    }
+  }
+
+  /**
+   * Labels
+   */
+  async addLabel(label: Label): Promise<Label> {
+    const newLabel = await this.storage.addLabel(label);
+    if (this.labelsCache) {
+      this.labelsCache.push(newLabel);
+      this.labelsMapCache[newLabel.id] = newLabel;
+    }
+    this.eventsService.labelAdded(newLabel.id);
+    return newLabel;
+  }
+
+  async updateLabel(label: Label): Promise<Label> {
+    const updated = await this.storage.updateLabel(label);
+    this.invalidateLabelsCache();
+    this.eventsService.labelUpdated(updated.id);
+    return updated;
+  }
+
+  async removeLabel(label: Label): Promise<void> {
+    await this.storage.removeLabel(label);
+    this.invalidateLabelsCache();
+    this.eventsService.labelRemoved(label.id);
+  }
+
+  async getLabel(labelId: number): Promise<Label> {
+    if (this.labelsMapCache) {
+      return this.labelsMapCache[labelId];
+    } else {
+      return await this.storage.getLabel(labelId);
+    }
+  }
+
+  async getLabels(): Promise<Label[]> {
+    if (this.labelsCache) {
+      return this.labelsCache;
+    }
+    if (this.labelsLoadingPromise) {
+      return this.labelsLoadingPromise;
+    }
+    this.labelsLoadingPromise = (async () => {
+      const labels = await this.storage.getAllLabels();
+      this.buildLabelsCache(labels);
+      this.labelsLoadingPromise = null;
+      return labels;
+    })();
+    return this.labelsLoadingPromise;
+  }
+
+  private buildLabelsCache(labels: Label[]) {
+    this.labelsCache = labels;
+    this.labelsMapCache = {};
+    for (const l of labels) {
+      this.labelsMapCache[l.id] = l;
+    }
+  }
+
+  /**
    * Get all Transactions Import Templates from storage
    */
   async getTransactionsImportTemplates(): Promise<TransactionsImportTemplate[]> {
@@ -1029,12 +1166,26 @@ export class PortfolioService {
     this.portfolioHistoryCache = null;
   }
 
+  private invalidateLabelCategoriesCache() {
+    this.labelCategoriesCache = null;
+    this.labelCategoriesMapCache = null;
+    this.invalidateAccountsCache();
+  }
+
+  private invalidateLabelsCache() {
+    this.labelsCache = null;
+    this.labelsMapCache = null;
+    this.invalidateAccountsCache();
+  }
+
   private invalidateEntireCache() {
     this.invalidateAccountsCache();
     this.invalidateNotificationsCache();
     this.invalidatePortfolioHistoryCache();
     this.invalidateRecTxCache();
     this.invalidateTxCache();
+    this.invalidateLabelCategoriesCache();
+    this.invalidateLabelsCache();
   }
 
   /**
@@ -1048,6 +1199,29 @@ export class PortfolioService {
         this.invalidateEntireCache();
         break;
     }
+  }
+
+  private getObjectAliasFromPath(event: StorageChangeEvent) {
+    if (event.relativePath.startsWith(ASSETS_PATH)) {
+      return ASSET_ALIAS;
+    } else if (event.relativePath.startsWith(ACCOUNTS_PATH)) {
+      return ACCOUNT_ALIAS;
+    } else if (event.relativePath.startsWith(TRANSACTIONS_PATH)) {
+      return TRANSACTION_ALIAS;
+    } else if (event.relativePath.startsWith(RECURRING_TRANSACTIONS_PATH)) {
+      return RECURRING_TRANSACTION_ALIAS;
+    } else if (event.relativePath.startsWith(NOTIFICATIONS_PATH)) {
+      return NOTIFICATION_ALIAS;
+    } else if (event.relativePath === CONFIG_PATH) {
+      return CONFIG_ALIAS;
+    } else if (event.relativePath === PORTFOLIO_HISTORY_PATH) {
+      return PORTFOLIO_HISTORY_ALIAS;
+    } else if (event.relativePath.startsWith(LABELS_PATH)) {
+      return LABEL_ALIAS;
+    } else if (event.relativePath.startsWith(LABEL_CATEGORIES_PATH)) {
+      return LABEL_CATEGORY_ALIAS;
+    }
+    return null;
   }
 
   /**
@@ -1071,7 +1245,9 @@ export class PortfolioService {
             action = ChangeAction.MODIFIED;
           }
 
-          if (event.relativePath.startsWith(ASSETS_PATH)) {
+          const objectAlias = this.getObjectAliasFromPath(event);
+
+          if (objectAlias === ASSET_ALIAS) {
             this.invalidateAccountsCache();
             const oldAsset: Asset = event.oldValue;
             const newAsset: Asset = event.newValue;
@@ -1084,7 +1260,7 @@ export class PortfolioService {
             } else {
               self.eventsService.assetUpdated(newAsset.id);
             }
-          } else if (event.relativePath.startsWith(ACCOUNTS_PATH)) {
+          } else if (objectAlias === ACCOUNT_ALIAS) {
             self.invalidateAccountsCache();
             const oldAccount: PortfolioAccount = event.oldValue;
             const newAccount: PortfolioAccount = event.newValue;
@@ -1097,7 +1273,7 @@ export class PortfolioService {
             } else {
               self.eventsService.accountUpdated(newAccount.id);
             }
-          } else if (event.relativePath.startsWith(TRANSACTIONS_PATH)) {
+          } else if (objectAlias === TRANSACTION_ALIAS) {
             self.invalidateTxCache();
             const oldTransaction: Transaction = event.oldValue;
             const newTransaction: Transaction = event.newValue;
@@ -1110,7 +1286,7 @@ export class PortfolioService {
             } else {
               self.eventsService.transactionUpdated(newTransaction.id);
             }
-          } else if (event.relativePath.startsWith(RECURRING_TRANSACTIONS_PATH)) {
+          } else if (objectAlias === RECURRING_TRANSACTION_ALIAS) {
             self.invalidateRecTxCache();
             const oldTransaction: RecurringTransaction = event.oldValue;
             const newTransaction: RecurringTransaction = event.newValue;
@@ -1123,7 +1299,7 @@ export class PortfolioService {
             } else {
               self.eventsService.recurringTransactionUpdated(newTransaction.id);
             }
-          } else if (event.relativePath.startsWith(NOTIFICATIONS_PATH)) {
+          } else if (objectAlias === NOTIFICATION_ALIAS) {
             self.invalidateNotificationsCache();
             const oldNotif: AppNotification = event.oldValue;
             const newNotif: AppNotification = event.newValue;
@@ -1136,13 +1312,38 @@ export class PortfolioService {
             } else {
               self.eventsService.notificationUpdated(newNotif.id);
             }
-          } else if (event.relativePath === CONFIG_PATH) {
+          } else if (objectAlias === CONFIG_ALIAS) {
             // delay notifications until sync is complete
             await self.storageService.waitForSync();
             self.eventsService.configUpdatedRemotely(self.storage.getId());
-          } else if (event.relativePath === PORTFOLIO_HISTORY_PATH) {
+          } else if (objectAlias === PORTFOLIO_HISTORY_ALIAS) {
             this.invalidatePortfolioHistoryCache();
+          } else if (objectAlias === LABEL_ALIAS) {
+            const oldLabel: Label = event.oldValue;
+            const newLabel: Label = event.newValue;
+            // delay notifications until sync is complete
+            await self.storageService.waitForSync();
+            if (action === ChangeAction.ADDED) {
+              self.eventsService.labelAdded(newLabel.id);
+            } else if (action === ChangeAction.REMOVED) {
+              self.eventsService.labelRemoved(oldLabel.id);
+            } else {
+              self.eventsService.labelUpdated(newLabel.id);
+            }
+          } else if (objectAlias === LABEL_CATEGORY_ALIAS) {
+            const oldLabelCategory: LabelCategory = event.oldValue;
+            const newLabelCategory: LabelCategory = event.newValue;
+            // delay notifications until sync is complete
+            await self.storageService.waitForSync();
+            if (action === ChangeAction.ADDED) {
+              self.eventsService.labelCategoryAdded(newLabelCategory.id);
+            } else if (action === ChangeAction.REMOVED) {
+              self.eventsService.labelCategoryRemoved(oldLabelCategory.id);
+            } else {
+              self.eventsService.labelCategoryUpdated(newLabelCategory.id);
+            }
           }
+
         }
       }
     });

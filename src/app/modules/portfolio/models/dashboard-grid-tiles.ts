@@ -24,6 +24,8 @@ export enum DashboardGridTiles {
   PortfolioTopHoldings,
 }
 
+export const LABEL_CATEGORY_TILE_PREFIX = 'LabelCategory_';
+
 export const DashboardGridTilesLabels: NumKeyDictionary<string> = {};
 DashboardGridTilesLabels[DashboardGridTiles.Goals] = 'Goals';
 DashboardGridTilesLabels[DashboardGridTiles.PortfolioAllocation] = 'Portfolio Allocation';

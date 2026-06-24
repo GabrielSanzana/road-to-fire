@@ -16,7 +16,7 @@ export class MockPortfolioService {
     portfolioAllocation: [{ assetType: AssetType.Cash, allocation: 1 }],
     withdrawalRate: 0.04,
     dashboardGridVisibility: {},
-    hideBondAndDepositsRecurringTxs: false,
+    version: 1,
   };
   notifications: AppNotification[] = [];
   accounts = Object.values(SAMPLE_ACCOUNTS);
@@ -28,6 +28,20 @@ export class MockPortfolioService {
     const account = this.accounts.find((acc) => acc.id === id);
     return Promise.resolve(account);
   }
+
+  getNotification(id: number): Promise<AppNotification> {
+    const notification = this.notifications.find((notif) => notif.id === id);
+    return Promise.resolve(notification);
+  }
+
+  getTransaction(id: number): Promise<any> {
+    return Promise.resolve(null);
+  }
+
+  getRecurringTransaction(id: number): Promise<any> {
+    return Promise.resolve(null);
+  }
+
   getAccounts(): Promise<PortfolioAccount[]> {
     return Promise.resolve(this.accounts);
   }
@@ -42,6 +56,48 @@ export class MockPortfolioService {
 
   getPortfolioHistory(): Promise<PortfolioHistory> {
     return Promise.resolve(this.portfolioHistory);
+  }
+
+  getTransactions(): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
+  getLabelCategories(): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
+  getLabels(): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
+  getRecurringTransactions(): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
+  getForexRates(symbols: string[]): Promise<any[]> {
+    return Promise.resolve([]);
+  }
+
+  saveConfig(config: PortfolioConfig): Promise<void> {
+    this.config = config;
+    return Promise.resolve();
+  }
+
+  updateAsset(asset: any, account: any): Promise<void> {
+    return Promise.resolve();
+  }
+
+  updateAssetQuotes(): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
+  markNotificationAsRead(notification: AppNotification): Promise<void> {
+    notification.unread = false;
+    return Promise.resolve();
+  }
+
+  deleteNotification(notification: AppNotification): Promise<void> {
+    return Promise.resolve();
   }
 
   savePortfolioHistory(history: PortfolioHistory): Promise<void> {

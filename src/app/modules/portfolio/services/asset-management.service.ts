@@ -1024,11 +1024,14 @@ export class AssetManagementService {
       }
     }
 
+
     const data: AssetTradeUserInputData = {
       account: account,
       assetType: assetType,
       action: AssetOperationAction.BUY,
       asset: asset,
+      allLabels: await this.portfolioService.getLabels(),
+      allLabelCategories: await this.portfolioService.getLabelCategories(),
     };
     const response: AssetOperationData = await this.dialogsService.showAdaptableScreenModal(AssetTradeComponent, data);
     if (response) {
@@ -1084,6 +1087,8 @@ export class AssetManagementService {
       assetType: asset.type,
       action: AssetOperationAction.EDIT,
       position: position,
+      allLabels: await this.portfolioService.getLabels(),
+      allLabelCategories: await this.portfolioService.getLabelCategories(),
     };
     const response: AssetOperationData = await this.dialogsService.showAdaptableScreenModal(AssetTradeComponent, data);
     if (response) {
@@ -1144,6 +1149,8 @@ export class AssetManagementService {
       asset: asset,
       action: AssetOperationAction.SELL,
       position: position,
+      allLabels: await this.portfolioService.getLabels(),
+      allLabelCategories: await this.portfolioService.getLabelCategories(),
     };
     const response: AssetOperationData = await this.dialogsService.showAdaptableScreenModal(AssetTradeComponent, data);
     if (response) {
@@ -2270,6 +2277,7 @@ export class AssetManagementService {
       asset.description = response.description;
     }
     asset.region = response.region || AssetRegion.Unspecified;
+    asset.labels = response.labels;
     if ((asset.type === AssetType.Bond || asset.type === AssetType.P2P)) {
       const bond = <BondAsset>asset;
       if (response.maturityDate) {

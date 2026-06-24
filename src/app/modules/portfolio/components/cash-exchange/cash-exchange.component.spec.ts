@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
 import { CashExchangeComponent, CashExchangeData } from './cash-exchange.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -42,6 +43,7 @@ describe('CashExchangeComponent', () => {
         MatSelectModule,
         MatToolbarModule,
         MatInputModule,
+        MatCheckboxModule,
       ],
       declarations: [
         CashExchangeComponent,

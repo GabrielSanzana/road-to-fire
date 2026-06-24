@@ -1,4 +1,5 @@
 import { NumKeyDictionary } from 'src/app/shared/models/dictionary';
+import { Label } from './label';
 
 export class AssetNotFoundError extends Error {
   constructor(assetId: number) {
@@ -66,6 +67,7 @@ export interface AssetData {
   type: AssetType;
   cashAssetId?: number;
   pendingDelete?: boolean;
+  labels?: Label[];
 }
 
 export class Asset implements AssetData {
@@ -76,6 +78,7 @@ export class Asset implements AssetData {
   type: AssetType;
   cashAssetId?: number;
   pendingDelete?: boolean;
+  labels?: Label[] = [];
 
   /**
    * Checks wherever an asset type is a bond or a fund holding bonds

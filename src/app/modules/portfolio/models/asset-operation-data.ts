@@ -1,6 +1,7 @@
 import { Asset } from "./asset";
 import { AssetRegion } from "./asset-region";
 import { BondInterestPaymentEvent, BondPrincipalPaymentEvent } from "./bond-asset";
+import { Label } from "./label";
 
 
 export enum AssetOperationAction {
@@ -35,4 +36,5 @@ export interface AssetOperationData {
   transactionDate: string;
   updateCashAssetBalance: boolean;
   withholdInterestTax: boolean;
+  labels?: Label[];
 }

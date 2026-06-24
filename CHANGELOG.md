@@ -1,5 +1,8 @@
 ## Master
 
+### Features
+* Add support for labeling assets
+
 ### Bug fixes
 * If the same asset is present in multiple accounts, only display it once when manually updating quotes
 

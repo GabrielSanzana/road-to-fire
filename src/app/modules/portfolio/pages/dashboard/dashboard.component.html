@@ -171,7 +171,7 @@
             <canvas baseChart [data]="topPortfolioHoldingsChart" [options]="pieChartOptions" type="doughnut"></canvas>
           </mat-card-content>
         </mat-card>
-      </mat-grid-tile>      
+      </mat-grid-tile>
 
       <mat-grid-tile
         *ngIf="gridVisibility[GridTiles.CurrencyAllocation] && currencyAllocationChart.datasets[0].data.length > 0">
@@ -326,6 +326,20 @@
           </mat-card-content>
         </mat-card>
       </mat-grid-tile>
+
+      <ng-container *ngFor="let category of labelCategories">
+        <mat-grid-tile
+          *ngIf="gridVisibility[LABEL_CATEGORY_TILE_PREFIX + category.id] && labelCategoriesAllocationCharts[category.id] && labelCategoriesAllocationCharts[category.id].datasets[0].data.length > 0">
+          <mat-card class="grid-card">
+            <mat-card-title>{{category.name}} Allocation</mat-card-title>
+
+            <mat-card-content fxLayout="column" fxLayoutAlign="center center" fxFill class="grid-card-content">
+              <canvas baseChart [data]="labelCategoriesAllocationCharts[category.id]" [options]="pieChartOptions"
+                type="doughnut"></canvas>
+            </mat-card-content>
+          </mat-card>
+        </mat-grid-tile>
+      </ng-container>
 
       <mat-grid-tile *ngIf="gridVisibility[GridTiles.Rebalancing]">
         <mat-card class="grid-card">

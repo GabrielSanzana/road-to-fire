@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
-import { AssetTradeComponent, AssetTradeUserInputData, AssetTradeAction } from './asset-trade.component';
+import { AssetTradeComponent, AssetTradeUserInputData } from './asset-trade.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -21,14 +21,19 @@ import { CurrencySymbolPipe } from 'src/app/shared/pipes/currency-symbol.pipe';
 import { FormatDatePipe } from 'src/app/shared/pipes/format-date.pipe';
 import { MockDialogsService } from 'src/app/modules/dialogs/mocks/dialogs.service.mock';
 import { DialogsService } from 'src/app/modules/dialogs/dialogs.service';
+import { PortfolioService } from '../../services/portfolio.service';
+import { MockPortfolioService } from '../../mocks/portfolio.service.mock';
 import { SAMPLE_ACCOUNTS } from '../../mocks/sample-accounts.mock';
 import { AssetType } from '../../models/asset';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { AssetOperationAction as AssetTradeAction } from '../../models/asset-operation-data';
 
 const dialogData: AssetTradeUserInputData = {
   account: SAMPLE_ACCOUNTS.account1,
   assetType: AssetType.Stock,
   action: AssetTradeAction.BUY,
+  allLabels: [],
+  allLabelCategories: [],
 };
 
 describe('AssetTradeComponent', () => {
@@ -62,6 +67,7 @@ describe('AssetTradeComponent', () => {
         FormatDatePipe,
       ],
       providers: [
+        { provide: PortfolioService, useClass: MockPortfolioService },
         { provide: DialogsService, useClass: MockDialogsService },
         {
           provide: MatDialogRef,

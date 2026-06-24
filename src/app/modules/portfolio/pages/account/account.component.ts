@@ -247,6 +247,16 @@ export class AccountComponent extends AssetsComponent implements OnInit, OnDestr
           this.onDataUpdated();
         }
         break;
+      case AppEventType.LABEL_ADDED:
+      case AppEventType.LABEL_REMOVED:
+      case AppEventType.LABEL_UPDATED:
+        this.onDataUpdated();
+        break;
+      case AppEventType.LABEL_CATEGORY_ADDED:
+      case AppEventType.LABEL_CATEGORY_REMOVED:
+      case AppEventType.LABEL_CATEGORY_UPDATED:
+        this.onDataUpdated();
+        break;
       case AppEventType.CLOUD_STORAGE_CONNECTING:
         // connect to cloud storage from home page to avoid OAuth origin errors.
         this.router.navigate(['../../'], { relativeTo: this.route });

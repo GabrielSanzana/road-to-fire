@@ -6,8 +6,7 @@
       <mat-tab-group [swipeTabs]="{hasSideNav: true}" class="mat-tab-group-fill-height">
         <mat-tab label="Main">
           <div fxLayout="column" class="text-content">
-            <mat-form-field
-              *ngIf="exchangeTradedAsset && !isMutualFund && !tradeExistingAsset">
+            <mat-form-field *ngIf="exchangeTradedAsset && !isMutualFund && !tradeExistingAsset">
               <input type="text" placeholder="Securities Exchange Code" matInput [formControl]="exchange"
                 [matAutocomplete]="exchangeCode">
               <mat-autocomplete #exchangeCode="matAutocomplete">
@@ -18,7 +17,8 @@
             </mat-form-field>
 
             <mat-form-field *ngIf="exchangeTradedAsset && !tradeExistingAsset">
-              <input matInput type="text" placeholder="Symbol (Ticker)" formControlName="symbol" [matAutocomplete]="assetSymbol">
+              <input matInput type="text" placeholder="Symbol (Ticker)" formControlName="symbol"
+                [matAutocomplete]="assetSymbol">
               <mat-autocomplete #assetSymbol="matAutocomplete">
                 <mat-option *ngFor="let symbol of filteredSuggestedSymbols | async" [value]="symbol.code">
                   {{symbol.code}} - {{symbol.name}}
@@ -62,7 +62,8 @@
 
             <mat-form-field>
               <span matPrefix>@&nbsp;</span>
-              <input matInput type="number" placeholder="Price{{hasAmount? ' per unit':''}}" formControlName="price" required>
+              <input matInput type="number" placeholder="Price{{hasAmount? ' per unit':''}}" formControlName="price"
+                required>
               <span matPrefix>{{assetCurrency | currencySymbol}}</span>
               <mat-error *ngIf="price.errors?.min">Price must be positive</mat-error>
             </mat-form-field>
@@ -168,10 +169,21 @@
               </mat-select>
             </mat-form-field>
 
-            <mat-checkbox *ngIf="data.action !== AssetTradeAction.EDIT && data.assetType !== AssetType.Forex" formControlName="updateCashAssetBalance"
-              (change)="updateCashAssetBalanceToggled()">
-              Automatically {{data.action === AssetTradeAction.BUY? 'debit':'credit'}} cash account with {{(amount.value *
-      price.value + fee.value * (data.action === AssetTradeAction.BUY? 1:-1) ) | currency: assetCurrency}}
+            <mat-form-field>
+              <mat-select placeholder="Labels" formControlName="labelIds" multiple>
+                <mat-optgroup *ngFor="let category of data.allLabelCategories" [label]="category.name">
+                  <mat-option *ngFor="let label of labelsByCategory[category.id]" [value]="label.id">
+                    {{label.name}}
+                  </mat-option>
+                </mat-optgroup>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-checkbox *ngIf="data.action !== AssetTradeAction.EDIT && data.assetType !== AssetType.Forex"
+              formControlName="updateCashAssetBalance" (change)="updateCashAssetBalanceToggled()">
+              Automatically {{data.action === AssetTradeAction.BUY? 'debit':'credit'}} cash account with
+              {{(amount.value *
+              price.value + fee.value * (data.action === AssetTradeAction.BUY? 1:-1) ) | currency: assetCurrency}}
             </mat-checkbox>
 
             <mat-form-field>
@@ -199,7 +211,8 @@
                 <button type="button" aria-label="Check All" mat-button color="primary"
                   (click)="checkAllPayments(interestPayments)">
                   <mat-icon>
-                    {{ interestPayments.selectedOptions.selected.length === interestPayments.options.length? 'check_box': 'check_box_outline_blank'}}
+                    {{ interestPayments.selectedOptions.selected.length === interestPayments.options.length?
+                    'check_box': 'check_box_outline_blank'}}
                   </mat-icon>
                   Check All
                 </button>
@@ -256,7 +269,8 @@
                 <button type="button" aria-label="Check All" mat-button color="primary"
                   (click)="checkAllPayments(principalPayments)">
                   <mat-icon>
-                    {{ principalPayments.selectedOptions.selected.length === principalPayments.options.length? 'check_box': 'check_box_outline_blank'}}
+                    {{ principalPayments.selectedOptions.selected.length === principalPayments.options.length?
+                    'check_box': 'check_box_outline_blank'}}
                   </mat-icon>
                   Check All
                 </button>

@@ -1,6 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { APP_CONSTS } from 'src/app/config/app.constants';
-import * as moment from 'moment';
+import moment from 'moment';
 
 /*
  * Return the human readable date for a given Date object

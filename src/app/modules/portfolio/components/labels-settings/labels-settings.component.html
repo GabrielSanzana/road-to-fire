@@ -1,0 +1,58 @@
+<div class="labels-container flex flex-col gap-4 max-w-2xl px-4 py-8">
+  <div class="flex flex-row justify-between items-center mb-4">
+    <h2 class="mat-h2 m-0 text-color">Labels Management</h2>
+    <div class="flex-grow"></div>
+    <button mat-raised-button color="primary" (click)="addCategory()">
+      <mat-icon>add</mat-icon>
+      New Category
+    </button>
+  </div>
+
+  <mat-accordion multi="true">
+    <mat-expansion-panel *ngFor="let category of categories">
+      <mat-expansion-panel-header>
+        <mat-panel-title class="flex-grow justify-between items-center pr-2">
+          <span>{{ category.name }}</span>
+          <div class="actions flex items-center">
+            <button mat-icon-button (click)="$event.stopPropagation(); editCategory(category)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="$event.stopPropagation(); deleteCategory(category)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+
+      <div class="labels-list flex flex-col gap-2 mt-2">
+        <div class="flex flex-row justify-end mb-2">
+          <button mat-button color="primary" (click)="addLabel(category)">
+            <mat-icon>add</mat-icon>
+            Add Label
+          </button>
+        </div>
+        <mat-list>
+          <mat-list-item *ngFor="let label of labelsByCategory[category.id]"
+            class="group hover:bg-black/5 dark:hover:bg-white/5 cursor-default transition-colors rounded-sm">
+            <span class="flex-grow text-color">{{ label.name }}</span>
+            <div class="actions flex ml-auto">
+              <button mat-icon-button (click)="editLabel(label)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="deleteLabel(label)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </mat-list-item>
+          <p *ngIf="labelsByCategory[category.id]?.length === 0" class="text-sm text-gray-500 italic p-4 text-center">
+            No labels in this category.
+          </p>
+        </mat-list>
+      </div>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <div *ngIf="categories.length === 0" class="text-center p-8 text-color-secondary italic">
+    No categories define yet. Start by creating a new category.
+  </div>
+</div>

@@ -33,6 +33,12 @@ export enum AppEventType {
   CLOUD_STORAGE_CONNECTED,
   CLOUD_STORAGE_NOT_CONNECTED,
   THEME_CHANGED,
+  LABEL_ADDED,
+  LABEL_REMOVED,
+  LABEL_UPDATED,
+  LABEL_CATEGORY_ADDED,
+  LABEL_CATEGORY_REMOVED,
+  LABEL_CATEGORY_UPDATED,
 }
 
 export interface ConfigLoadedData {
@@ -226,6 +232,72 @@ export class EventsService {
     });
   }
 
+  /**
+   * A new label has been added
+   * @param labelId the unique id of the label
+   */
+  labelAdded(labelId: number) {
+    this.triggerEvent({
+      type: AppEventType.LABEL_ADDED,
+      data: labelId,
+    });
+  }
+
+  /**
+   * A label has been deleted
+   * @param labelId the unique id of the label
+   */
+  labelRemoved(labelId: number) {
+    this.triggerEvent({
+      type: AppEventType.LABEL_REMOVED,
+      data: labelId,
+    });
+  }
+
+  /**
+   * Data of a label has been modified
+   * @param labelId the unique id of the label
+   */
+  labelUpdated(labelId: number) {
+    this.triggerEvent({
+      type: AppEventType.LABEL_UPDATED,
+      data: labelId,
+    });
+  }
+
+  /**
+   * A new label category has been added
+   * @param labelCategoryId the unique id of the label category
+   */
+  labelCategoryAdded(labelCategoryId: number) {
+    this.triggerEvent({
+      type: AppEventType.LABEL_CATEGORY_ADDED,
+      data: labelCategoryId,
+    });
+  }
+
+  /**
+   * A label category has been deleted
+   * @param labelCategoryId the unique id of the label category
+   */
+  labelCategoryRemoved(labelCategoryId: number) {
+    this.triggerEvent({
+      type: AppEventType.LABEL_CATEGORY_REMOVED,
+      data: labelCategoryId,
+    });
+  }
+
+  /**
+   * Data of a label category has been modified
+   * @param labelCategoryId the unique id of the label category
+   */
+  labelCategoryUpdated(labelCategoryId: number) {
+    this.triggerEvent({
+      type: AppEventType.LABEL_CATEGORY_UPDATED,
+      data: labelCategoryId,
+    });
+  }
+
 
 
   /**
@@ -366,7 +438,7 @@ export class EventsService {
       type: AppEventType.CLOUD_STORAGE_CONNECTING,
       data: null,
     });
-  }  
+  }
 
   /**
    * Fired if cloud storage is active

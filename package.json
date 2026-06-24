@@ -39,7 +39,6 @@
     "@angular/service-worker": "^14.2.5",
     "@ecodev/fab-speed-dial": "^11.0.0",
     "@types/crypto-js": "^3.1.47",
-    "@types/ws": "^8.5.10",
     "chart.js": "^4.4.2",
     "chartjs-adapter-moment": "^1.0.0",
     "core-js": "^2.6.12",
@@ -51,8 +50,8 @@
     "moment": "^2.29.4",
     "ng2-charts": "^4.1.1",
     "node-irr": "^2.0.3",
-    "remotestorage-widget": "^1.5.2",
-    "remotestoragejs": "^1.2.3",
+    "remotestorage-widget": "^1.8.1",
+    "remotestoragejs": "^2.0.0-beta.8",
     "rxjs": "^6.6.7",
     "tslib": "^2.0.0",
     "zone.js": "~0.11.4"
@@ -70,7 +69,8 @@
     "@types/jasmine": "~3.6.0",
     "@types/jasminewd2": "^2.0.9",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^16.18.96",
+    "@types/node": "16.18.96",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "5.37.0",
     "@typescript-eslint/parser": "5.37.0",
     "eslint": "^8.23.1",
@@ -86,6 +86,6 @@
     "karma-jasmine-html-reporter": "^1.5.0",
     "protractor": "^7.0.0",
     "ts-node": "^8.10.2",
-    "typescript": "~4.6.4"
+    "typescript": "~4.8.0"
   }
 }

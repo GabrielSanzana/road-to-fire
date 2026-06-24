@@ -1,5 +1,5 @@
 import { StorageSerializer } from './storage-serializer';
-import { StorageChangeEvent, StorageModule, UnsupportedEncryptionError } from '../services/storage.service';
+import { StorageChangeEvent, StorageChangeOrigin, StorageModule, UnsupportedEncryptionError } from '../services/storage.service';
 import { Dictionary } from 'src/app/shared/models/dictionary';
 
 /**
@@ -233,6 +233,15 @@ export abstract class BaseRemoteStorageModule implements RemoteStorageModule {
    * Fired when storage is modified either locally or remote
    */
   onChange = (event: StorageChangeEvent) => {
+    if (event.origin === StorageChangeOrigin.conflict) {
+      // in case of conflict, we discard the local version and keep the remote one
+      const objectTypes = this.getObjectTypes();
+      const objectType = objectTypes.find(objType => event.relativePath.startsWith(objType.path));
+      if (objectType) {
+        this.privateClient.storeObject(objectType.alias, event.relativePath, event.newValue);
+      }
+    }
+
     // we need to unserialize (decrypt) raw data first
     try {
       if (event.oldValue) {

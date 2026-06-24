@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
-import * as moment from 'moment';
+import moment from 'moment';
 
 export enum LocaleIDs {
   EN_US = 'en-US',

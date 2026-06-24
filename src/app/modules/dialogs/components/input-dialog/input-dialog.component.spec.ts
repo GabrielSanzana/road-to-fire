@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { InputDialogComponent } from './input-dialog.component';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 describe('InputDialogComponent', () => {
   let component: InputDialogComponent;
@@ -22,6 +22,7 @@ describe('InputDialogComponent', () => {
         MatInputModule,
         MatButtonModule,
         FormsModule,
+        ReactiveFormsModule,
       ],
       providers: [
         {
