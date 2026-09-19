@@ -51,6 +51,37 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # ---------------------------------------------------------------- 2
+      # SCA. Se ejecuta ANTES de instalar las dependencias: con node_modules
+      # presente, Trivy recorre ese directorio y deja de analizar
+      # package-lock.json, de modo que la puerta pasaba sin haber revisado el
+      # arbol de dependencias de JavaScript.
+      # BLOQUEANTE solo sobre lo que tiene correccion publicada; el resto se
+      # registra sin detener la entrega.
+      - name: SCA · puerta bloqueante (solo lo corregible)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: '.'
+          scanners: vuln
+          skip-dirs: node_modules
+          ignore-unfixed: true
+          severity: 'CRITICAL'
+          exit-code: '1'
+          format: table
+
+      - name: SCA · registro informativo (todo lo detectado)
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: '.'
+          scanners: vuln
+          skip-dirs: node_modules
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+          format: table
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -71,31 +102,6 @@ jobs:
       - name: Pruebas unitarias con cobertura
         continue-on-error: true
         run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
-
-      # ---------------------------------------------------------------- 3
-      # SCA. BLOQUEANTE solo sobre lo que tiene correccion publicada; lo demas
-      # se registra sin detener la entrega.
-      - name: SCA · puerta bloqueante (solo lo corregible)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: '.'
-          scanners: vuln
-          ignore-unfixed: true
-          severity: 'CRITICAL'
-          exit-code: '1'
-          format: table
-
-      - name: SCA · registro informativo (todo lo detectado)
-        if: always()
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: '.'
-          scanners: vuln
-          severity: 'CRITICAL,HIGH'
-          exit-code: '0'
-          format: table
 
       - name: SCA complementario (Snyk)
         if: env.HAY_SNYK == 'true'

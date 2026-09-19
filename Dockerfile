@@ -27,6 +27,16 @@ RUN npx ng build --configuration production
 # Esto evita los hallazgos de Trivy sobre contenedores que corren como root.
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 
+# La etiqueta de la imagen base arrastra paquetes del sistema con vulnerabilidades
+# criticas ya corregidas por Alpine (openssl 3.3.3-r0, corregido en 3.3.7-r0). Se
+# actualizan en la construccion para que la puerta de imagenes no bloquee por un
+# componente que el proveedor ya parcho. La contrapartida esta documentada en la
+# Seccion 3: esta instruccion resuelve versiones en el momento de construir, de
+# modo que dos construcciones del mismo commit pueden diferir.
+USER root
+RUN apk --no-cache upgrade
+USER 101
+
 COPY --from=build /app/dist/RoadToFIRE /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

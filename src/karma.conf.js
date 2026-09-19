@@ -9,7 +9,11 @@ module.exports = function (config) {
       require('karma-jasmine'),
       require('karma-chrome-launcher'),
       require('karma-jasmine-html-reporter'),
-      require('karma-coverage-istanbul-reporter'),
+      // Angular 13 y posteriores instrumentan el codigo con karma-coverage, no con
+      // karma-coverage-istanbul-reporter. Sin este plugin registrado, la orden
+      // `ng test --code-coverage` falla al arrancar con
+      // "Can not load reporter coverage, it is not registered".
+      require('karma-coverage'),
       require('@angular-devkit/build-angular/plugins/karma')
     ],
     client: {
@@ -18,10 +22,16 @@ module.exports = function (config) {
       },	
       clearContext: false // leave Jasmine Spec Runner output visible in browser
     },
-    coverageIstanbulReporter: {
+    // La ruta y el formato deben coincidir con sonar.javascript.lcov.reportPaths
+    // declarado en sonar-project.properties.
+    coverageReporter: {
       dir: require('path').join(__dirname, '../coverage'),
-      reports: ['html', 'lcovonly'],
-      fixWebpackSourcePaths: true
+      subdir: '.',
+      reporters: [
+        { type: 'html' },
+        { type: 'lcovonly' },
+        { type: 'text-summary' }
+      ]
     },
     reporters: ['progress', 'kjhtml'],
     port: 9876,
