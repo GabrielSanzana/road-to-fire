@@ -121,8 +121,10 @@ jobs:
       # ---------------------------------------------------------------- 5
       # SAST. La puerta de calidad se define en el servidor de SonarQube.
       - name: SAST (SonarQube Cloud)
-        if: env.HAY_SONAR == 'true'
-        uses: SonarSource/sonarqube-scan-action@689fb39b34b9aa95ebc5f8f119343ddd51542402 # v4
+        # Ademas del token, exige la organizacion: sin ella el escaner recibe un
+        # parametro vacio y termina con error.
+        if: env.HAY_SONAR == 'true' && vars.SONAR_ORGANIZATION != ''
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

@@ -9,8 +9,11 @@ FROM node:18.20.4-alpine AS build
 
 WORKDIR /app
 
-# Se copian primero los manifiestos para aprovechar el cache de capas.
-COPY package.json package-lock.json ./
+# Se copian primero los manifiestos para aprovechar el cache de capas. Se incluye
+# .npmrc porque el proyecto arrastra un conflicto de dependencias entre pares
+# (@ecodev/fab-speed-dial exige rxjs 7 y Angular 14 trae rxjs 6) y ese archivo
+# declara la excepcion. Sin el, npm ci falla con ERESOLVE dentro de la imagen.
+COPY package.json package-lock.json .npmrc ./
 
 # npm ci exige el archivo de bloqueo e instala el arbol exacto registrado en el.
 RUN npm ci
