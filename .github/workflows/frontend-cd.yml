@@ -1,15 +1,15 @@
-name: Frontend CD Pipeline
+name: CD · Despliegue a produccion en Vercel
 
 # El despliegue de produccion corre en Vercel. Reemplaza al despliegue a Azure
 # Storage de la version anterior del pipeline.
 # Este workflow es el unico camino a produccion: la integracion de Git de Vercel
 # esta desconectada, de modo que nada se publica sin haber pasado las puertas
-# del workflow "Frontend CI Pipeline".
+# del workflow "CI · Puertas de seguridad y construccion".
 # Las acciones de terceros estan fijadas por hash completo de commit.
 
 on:
   workflow_run:
-    workflows: ["Frontend CI Pipeline"]
+    workflows: ["CI · Puertas de seguridad y construccion"]
     types: [completed]
     branches: [master]
 
@@ -28,7 +28,7 @@ env:
 jobs:
 
   cd:
-    name: Deploy to Vercel
+    name: 4 · Despliegue a produccion · Vercel
     # Solo se despliega si el pipeline de integracion termino en exito.
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
@@ -40,13 +40,13 @@ jobs:
     steps:
       # Se descarga el commit exacto que aprobo las puertas, no la punta de la
       # rama: sin esto se podria publicar codigo que nunca fue analizado.
-      - name: Checkout del commit aprobado por el CI
+      - name: Checkout del commit aprobado por el CI · actions/checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       # Ultimo control antes de publicar, sobre los archivos de despliegue.
-      - name: Escaneo de seguridad IaC con Trivy
+      - name: Infraestructura como codigo · Trivy config
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
@@ -55,32 +55,32 @@ jobs:
           exit-code: '0'
           format: table
 
-      - name: Configurar Node.js
+      - name: Entorno de ejecucion · Node.js 18.20.4
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       # La version del CLI queda fijada por el mismo motivo que las acciones.
-      - name: Instalar Vercel CLI
+      - name: Herramienta de despliegue · Vercel CLI 59.23.2
         run: npm install --global "vercel@${VERCEL_CLI_VERSION}"
 
-      - name: Recuperar la configuracion del proyecto
+      - name: Configuracion del proyecto · Vercel
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       # La construccion respeta package-lock.json, de modo que las versiones
       # publicadas son las mismas que evaluo el control de dependencias.
-      - name: Construir el artefacto de produccion
+      - name: Construccion del artefacto · Vercel
         run: vercel build --prod --token="$VERCEL_TOKEN"
 
-      - name: Desplegar a produccion
+      - name: Despliegue a produccion · Vercel
         id: deploy
         run: |
           url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Despliegue disponible en $url" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verificar que el sitio responde
+      - name: Verificacion posterior al despliegue · HTTP
         run: |
           url="${{ steps.deploy.outputs.url }}"
           for i in $(seq 1 10); do

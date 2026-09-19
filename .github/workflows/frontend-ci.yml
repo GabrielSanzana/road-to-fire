@@ -1,4 +1,4 @@
-name: Frontend CI Pipeline
+name: CI · Puertas de seguridad y construccion
 
 # Caso: road-to-fire (Angular 14 + TypeScript, npm con package-lock.json).
 # Cada paso corresponde a un control de la Tabla 1 de la Seccion 3, y su
@@ -30,7 +30,7 @@ env:
 jobs:
 
   ci:
-    name: DevSecOps Quality & Security Gate
+    name: 1 · Codigo, dependencias y construccion
     runs-on: ubuntu-latest
     env:
       # Los controles que dependen de una cuenta externa solo corren si su
@@ -40,13 +40,14 @@ jobs:
       HAY_SONAR: ${{ secrets.SONAR_TOKEN != '' }}
     steps:
       # El historial completo es necesario para escanear commits anteriores.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Checkout del repositorio · actions/checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
       # ---------------------------------------------------------------- 1
       # Deteccion de secretos. BLOQUEANTE ante cualquier hallazgo.
-      - name: Deteccion de secretos (Gitleaks)
+      - name: Deteccion de secretos · Gitleaks
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,7 +59,7 @@ jobs:
       # arbol de dependencias de JavaScript.
       # BLOQUEANTE solo sobre lo que tiene correccion publicada; el resto se
       # registra sin detener la entrega.
-      - name: SCA · puerta bloqueante (solo lo corregible)
+      - name: SCA de dependencias · Trivy filesystem (bloqueante)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
@@ -70,7 +71,7 @@ jobs:
           exit-code: '1'
           format: table
 
-      - name: SCA · registro informativo (todo lo detectado)
+      - name: SCA de dependencias · Trivy filesystem (informativo)
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -82,28 +83,29 @@ jobs:
           exit-code: '0'
           format: table
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Entorno de ejecucion · Node.js 18.20.4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       # npm ci exige el archivo de bloqueo, no lo modifica y falla si no
       # coincide con package.json: instala el arbol exacto que se evaluo.
-      - name: Instalar dependencias desde el archivo de bloqueo
+      - name: Instalacion reproducible · npm ci
         run: npm ci
 
       # ---------------------------------------------------------------- 2
       # Calidad de codigo. INFORMATIVO mientras se calibra el volumen de
       # hallazgos sobre un repositorio con deuda previa.
-      - name: Lint
+      - name: Calidad de codigo · ESLint
         continue-on-error: true
         run: npm run lint
 
-      - name: Pruebas unitarias con cobertura
+      - name: Pruebas unitarias y cobertura · Karma y Jasmine
         continue-on-error: true
         run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
 
-      - name: SCA complementario (Snyk)
+      - name: SCA de dependencias · Snyk (informativo)
         if: env.HAY_SNYK == 'true'
         continue-on-error: true
         uses: snyk/actions/node@12140f4059e244892ae643824a95459a102120dd # master
@@ -115,7 +117,7 @@ jobs:
       # ---------------------------------------------------------------- 4
       # Infraestructura como codigo. El objeto del control es el Dockerfile,
       # unico archivo de despliegue del repositorio. BLOQUEANTE en critico.
-      - name: Infraestructura como codigo (Trivy config)
+      - name: Infraestructura como codigo · Trivy config
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
@@ -126,7 +128,7 @@ jobs:
 
       # ---------------------------------------------------------------- 5
       # SAST. La puerta de calidad se define en el servidor de SonarQube.
-      - name: SAST (SonarQube Cloud)
+      - name: SAST y puerta de calidad · SonarQube Cloud
         # Ademas del token, exige la organizacion: sin ella el escaner recibe un
         # parametro vacio y termina con error.
         if: env.HAY_SONAR == 'true' && vars.SONAR_ORGANIZATION != ''
@@ -139,10 +141,10 @@ jobs:
 
       # ---------------------------------------------------------------- 6
       # Construccion. BLOQUEANTE: sin artefacto no hay despliegue.
-      - name: Compilar Angular (produccion)
+      - name: Construccion de produccion · Angular CLI
         run: npm run build -- --configuration production
 
-      - name: Guardar artefacto de construccion
+      - name: Publicacion del artefacto · GitHub Actions
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: angular-dist
@@ -153,15 +155,16 @@ jobs:
   # Imagen de contenedor. Se ejecuta en paralelo al resto porque construye su
   # propia copia de la aplicacion dentro del Dockerfile.
   imagen:
-    name: Imagen de contenedor (Trivy image)
+    name: 2 · Imagen de contenedor · Trivy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Checkout del repositorio · actions/checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Construir la imagen
+      - name: Construccion de la imagen · Docker
         run: docker build -t "$IMAGE" .
 
-      - name: Trivy image · puerta bloqueante (solo lo corregible)
+      - name: Escaneo de imagen · Trivy image (bloqueante)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
@@ -171,7 +174,7 @@ jobs:
           exit-code: '1'
           format: table
 
-      - name: Trivy image · registro informativo
+      - name: Escaneo de imagen · Trivy image (informativo)
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -185,7 +188,7 @@ jobs:
   # DAST. Necesita la aplicacion en ejecucion, de modo que depende del job
   # anterior. INFORMATIVO: registra el hallazgo sin detener la entrega.
   dast:
-    name: DAST (OWASP ZAP)
+    name: 3 · Analisis dinamico · OWASP ZAP
     runs-on: ubuntu-latest
     needs: [imagen]
     # Control INFORMATIVO, coherente con el caracter que le asigna la Tabla 2: el
@@ -194,9 +197,10 @@ jobs:
     # del ambiente efimero bloqueen la promocion a produccion.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Checkout del repositorio · actions/checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Levantar la aplicacion
+      - name: Ambiente efimero de pruebas · Docker
         continue-on-error: true
         run: |
           docker build -t "$IMAGE" . || exit 0
@@ -207,7 +211,7 @@ jobs:
           done
           docker logs app 2>&1 | tail -20 || true
 
-      - name: ZAP baseline
+      - name: Analisis dinamico · OWASP ZAP baseline (informativo)
         continue-on-error: true
         uses: zaproxy/action-baseline@66042c8e7e24680119199a017e5b0e8603bf4dae # v0.12.0
         with:
@@ -217,6 +221,6 @@ jobs:
           fail_action: false
           allow_issue_writing: false
 
-      - name: Apagar la aplicacion
+      - name: Limpieza del ambiente · Docker
         if: always()
         run: docker rm -f app || true
